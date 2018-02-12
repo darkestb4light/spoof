@@ -19,7 +19,9 @@ This is a proof of concept and is not intended to:
 - Be used maliciously
 - Target any asset without prior authorization
 - Be modified with any intent outside of personal research or learning
-	
+
+** Also, see the license that should accompany this README and code.
+
 Note:
 =====
 
@@ -29,11 +31,11 @@ This requires elevated privileges since you could do evil things.
 The source argument passed will be inputted into the source address field 
 of the IP header. 
 
-If you feel like modifying TCP flags, see the definition constants below 
-(prefixed with "TCP_FLAG_"). They can be enabled (1) or disabled (0). This 
-will require a recompile upon each change. IMPORTANT: It is recommended to 
-avoid modifying any values outside of TCP flags unless you know what you 
-are doing.
+If you feel like modifying TCP flags, see the definition constants in spoof.c 
+(prefixed with "TCP_FLAG_"). They can be enabled (1) or disabled (0) as needed. 
+This will of course require a recompile upon each change as I have not provided
+an interface via arguments (yet). IMPORTANT: It is recommended to avoid modifying 
+any values outside of TCP flags unless you know what you are doing.
 
 On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to 
 fail with: "Can't assign requested address". Use "localhost" or another 
