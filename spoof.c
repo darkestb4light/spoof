@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 	struct tcphdr 		tcp_hdr;
 	 
 	if(argc != MAX_ARG){
-		fprintf(stderr, "%s: %s\n\n%s\n%s\n%s\n", NAME, 
+		fprintf(stderr, "%s %s\n\n%s\n%s\n%s\n", NAME, 
 			"<src> <dst> <dport>", 
 			"<src>	# the source address to spoof", 
 			"<dst>	# the destination address of the victim to send the packet to",
