@@ -45,5 +45,8 @@ Purpose:
 			
 		Execute:
 		
-		$ sudo ./spoof 123.45.67.8 localhost 55555
+		$ sudo ./spoof 123.45.67.8 192.168.0.10 55555
+		
+		The above will spoof the source address "123.45.67.8" and send a packet 
+		to the destination "192.168.0.10" over TCP port 55555.
 		
