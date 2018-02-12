@@ -42,3 +42,8 @@ Purpose:
 		<src>	# the source address to spoof
 		<dst>	# the destination address of the victim to send the packet to
 		<dport> # the TCP destination port to send the packet to
+			
+		Execute:
+		
+		$ sudo ./spoof 123.45.67.8 localhost 55555
+		
