@@ -9,7 +9,7 @@
 		- Target any asset without prior authorization
 		- Be modified with any intent outside of personal research or learning
 	Developer:
-		darkestb4light
+		darkestb4light (https://github.com/darkestb4light)
 	Note:
 		To get deeper than the typical app layer, we need to deal with raw sockets. 
 		This requires elevated privileges since you could do evil things. 
@@ -111,8 +111,8 @@ int main(int argc, char **argv)
 	struct tcphdr 		tcp_hdr;
 	 
 	if(argc != MAX_ARG){
-		fprintf(stderr, "%s %s\n\n%s\n%s\n%s\n", NAME, 
-			"<src> <dst> <dport>", 
+		fprintf(stderr, "Usage:\n\n%s %s\n\n%s\n%s\n%s\n", 
+			NAME, "<src> <dst> <dport>", 
 			"<src>	# the source address to spoof", 
 			"<dst>	# the destination address of the victim to send the packet to",
 			"<dport> # the TCP destination port to send the packet to");              
