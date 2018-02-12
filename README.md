@@ -45,9 +45,9 @@ Usage:
 
 spoof \<src\> \<dst\> \<dport\>
 
-\<src\>	# the source address to spoof
-\<dst\>	# the destination address of the victim to send the packet to
-\<dport\> # the TCP destination port to send the packet to
+\<src\>	\# the source address to spoof
+\<dst\>	\# the destination address of the victim to send the packet to
+\<dport\> \# the TCP destination port to send the packet to
 
 Execute:
 ========
