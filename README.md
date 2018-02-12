@@ -46,7 +46,7 @@ Compile:
 
 gcc -D \<TARGET-OS\> -o spoof spoof.c
 
-Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX
+Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform you are compiling on).
 
 Usage:
 ======
