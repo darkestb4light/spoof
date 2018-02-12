@@ -40,6 +40,13 @@
 		<src>	# the source address to spoof
 		<dst>	# the destination address of the victim to send the packet to
 		<dport> # the TCP destination port to send the packet to
+		
+		Execute:
+		
+		$ sudo ./spoof 123.45.67.8 192.168.0.10 55555
+		
+		The above will spoof the source address "123.45.67.8" and send a packet 
+		to the destination "192.168.0.10" over TCP port 55555.
 */
 
 #include <errno.h>
@@ -94,7 +101,6 @@
 #define TCP_FLAG_URG 0		/* urgent; enable == 1, disable == 0 */
 #define TCP_FLAG_ECE 0		/* explicit congestion (notification) echo */
 #define TCP_FLAG_CWR 0		/* congestion window reduced */
-
 
 int main(int argc, char **argv)
 {
