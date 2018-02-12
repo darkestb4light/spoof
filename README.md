@@ -36,7 +36,7 @@ IPv4 address. The former will use the broadcast address as the source.
 Compile:
 ========
 
-$ gcc -D <TARGET-OS> -o spoof spoof.c
+gcc -D <TARGET-OS> -o spoof spoof.c
 
 Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX
 
