@@ -1,6 +1,12 @@
 # spoof
 
-A simple PoC for generating spoofed IPv4 packets.
+A simple PoC for generating spoofed IPv4 packets. In particular, the 
+intent is to:
+
+- Spoof the IPv4 source address within the IP header
+- Optionally modify IP and/or TCP fields (only recommended to manipulate 
+source address within IP header and TCP flags within TCP header unless 
+you know what your doing)
 
 Purpose:
 ========
@@ -52,4 +58,3 @@ $ sudo ./spoof 123.45.67.8 192.168.0.10 55555
 
 The above will spoof the source address "123.45.67.8" and send a packet 
 to the destination "192.168.0.10" over TCP port 55555.
-		
