@@ -8,6 +8,7 @@
 		- Be used maliciously
 		- Target any asset without prior authorization
 		- Be modified with any intent outside of personal research or learning
+		** Also, see the license that should accompany this README and code.
 	Developer:
 		Ray Daley (https://github.com/darkestb4light)
 	Note:
@@ -31,7 +32,8 @@
 		
 		$ gcc -D <TARGET-OS> -o spoof spoof.c
 
-		Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX
+		Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX (depending on the 
+		platform you are compiling on).
 
 		Usage:
 
