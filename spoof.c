@@ -9,7 +9,7 @@
 		- Target any asset without prior authorization
 		- Be modified with any intent outside of personal research or learning
 	Developer:
-		darkestb4light (https://github.com/darkestb4light)
+		Ray Daley (https://github.com/darkestb4light)
 	Note:
 		To get deeper than the typical app layer, we need to deal with raw sockets. 
 		This requires elevated privileges since you could do evil things. 
