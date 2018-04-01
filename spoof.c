@@ -66,23 +66,23 @@
 #include <sys/socket.h>
 
 #ifdef LINUX
-	#include <linux/ip.h>
-	#include <linux/tcp.h>
+    #include <linux/ip.h>
+    #include <linux/tcp.h>
 #elif FREEBSD | OSX
-	#include <sys/types.h>
-	#include <netinet/in.h>
-	#include <netinet/ip.h>
-	#include <netinet/tcp.h>
+    #include <sys/types.h>
+    #include <netinet/in.h>
+    #include <netinet/ip.h>
+    #include <netinet/tcp.h>
 #else
-	#error Target OS macro not specified or unsupported.
-	#error Use supported macro: -D LINUX, -D FREEBSD, or -D OSX
-	#error Aborting compilation.
+    #error Target OS macro not specified or unsupported.
+    #error Use supported macro: -D LINUX, -D FREEBSD, or -D OSX
+    #error Aborting compilation.
 #endif
 
 #ifdef OSX
-	#define AVOID_IPLEN_HTONS 1
+    #define AVOID_IPLEN_HTONS 1
 #else
-	#define AVOID_IPLEN_HTONS 0
+    #define AVOID_IPLEN_HTONS 0
 #endif
 
 #define NAME	"spoof"
