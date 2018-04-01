@@ -12,7 +12,7 @@ Purpose:
 ========
 
 Demonstrate a PoC for dealing with raw sockets. The driver for this was to 
-provide an interface for spoofing a source IPv4 address.
+provide an interface for spoofing a source IPv4 address or hostname.
 
 This is a proof of concept and is not intended to:
 - Be free of bugs
@@ -20,7 +20,7 @@ This is a proof of concept and is not intended to:
 - Target any asset without prior authorization
 - Be modified with any intent outside of personal research or learning
 
-** Also, see the license that should accompany this README and code.
+** See the license that should accompany this README and code.
 
 Note:
 =====
@@ -56,7 +56,17 @@ spoof \<src\> \<dst\> \<dport\>
 Execute:
 ========
 
+Example 1:
+
 $ sudo ./spoof 123.45.67.8 192.168.0.10 55555
 
 The above will spoof the source address "123.45.67.8" and send a packet 
 to the destination "192.168.0.10" over TCP port 55555.
+
+Example 2:
+
+$ sudo ./spoof foobar.com my.victim.com 1337
+
+The above will spoof the source address "foobar.com" and send a packet 
+to the destination "my.victim.com" over TCP port 1337.
+
