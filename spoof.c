@@ -1,14 +1,14 @@
 /*
 	Purpose:
 		Demonstrate a PoC for dealing with raw sockets. The driver for this was to 
-		provide an interface for spoofing a source IPv4 address.
+		provide an interface for spoofing a source IPv4 address or hostname.
 
 		This is a proof of concept and is not intended to:
 		- Be free of bugs
 		- Be used maliciously
 		- Target any asset without prior authorization
 		- Be modified with any intent outside of personal research or learning
-		** Also, see the license that should accompany this README and code.
+		** See the license that should accompany this README and code.
 	Developer:
 		Ray Daley (https://github.com/darkestb4light)
 	Note:
@@ -25,8 +25,8 @@
 		are doing.
 
 		On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to 
-		fail with: "Can't assign requested address". Use "localhost" or another 
-		IPv4 address. The former will use the broadcast address as the source.
+		fail with: "Can't assign requested address". Use another source address or 
+        hostname.
 
 		Compile: 
 		
@@ -35,23 +35,32 @@
 		Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX (depending on the 
 		platform you are compiling on).
 
-		Usage:
+		Usage: 
 
-		spoof <src> <dst> <dport>
+        spoof <src> <dst> <dport>
 
-		<src>	# the source address to spoof
-		<dst>	# the destination address of the victim to send the packet to
-		<dport> # the TCP destination port to send the packet to
+		<src>	# source IPv4 address or hostname to spoof
+		<dst>	# destination IPv4 address or hostname of victim
+		<dport> # destination port to send spoofed TCP packet
 		
-		Execute:
-		
+		Execute (example 1):
+
 		$ sudo ./spoof 123.45.67.8 192.168.0.10 55555
-		
+
 		The above will spoof the source address "123.45.67.8" and send a packet 
 		to the destination "192.168.0.10" over TCP port 55555.
+
+        Execute (example 2):
+
+		$ sudo ./spoof foobar.com my.victim.com 1337
+
+		The above will spoof the source address "foobar.com" and send a packet 
+		to the destination "my.victim.com" over TCP port 1337.
+
 */
 
 #include <errno.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,59 +90,98 @@
 
 #define NAME	"spoof"
 #define MAX_ARG 4
+#define HOST_SZ 32
 
 /* Flags for IP header */
-#define IP_HDRLEN 5			/* header length */
-#define IP_VER 4			/* version */
-#define IP_TYPEOFSERV 0		/* type of service */
-#define IP_TOTLEN 0			/* total length (computed after building IP/TCP headers) */
-#define IP_FRAGOFF 0		/* fragment offset */
-#define IP_TIMETOLIVE 64	/* time to live */
-#define IP_PROTO 6			/* protocol */
-#define IP_CHKSUM 0			/* checksum */
+#define IP_HDRLEN       5	/* header length */
+#define IP_VER          4	/* version */
+#define IP_TYPEOFSERV   0	/* type of service */
+#define IP_TOTLEN       0	/* total length (computed after building IP/TCP headers) */
+#define IP_FRAGOFF      0	/* fragment offset */
+#define IP_TIMETOLIVE   64	/* time to live */
+#define IP_PROTO        6	/* protocol */
+#define IP_CHKSUM       0	/* checksum */
 
 /* Flags for TCP header */
-#define TCP_DATAOFF 5		/* data offset */
-#define TCP_CHECKSUM 0		/* checksum */
-#define TCP_FLAG_FIN 0		/* finished; enable == 1, disable == 0 */
-#define TCP_FLAG_SYN 1		/* sync; enable == 1, disable == 0 */
-#define TCP_FLAG_RST 0		/* reset; enable == 1, disable == 0 */
-#define TCP_FLAG_PSH 0		/* push; enable == 1, disable == 0 */
-#define TCP_FLAG_ACK 0		/* acknowledgement; enable == 1, disable == 0 */
-#define TCP_FLAG_URG 0		/* urgent; enable == 1, disable == 0 */
-#define TCP_FLAG_ECE 0		/* explicit congestion (notification) echo */
-#define TCP_FLAG_CWR 0		/* congestion window reduced */
+#define TCP_DATAOFF     5   /* data offset */
+#define TCP_CHECKSUM    0   /* checksum */
+#define TCP_FLAG_FIN    0   /* finished; enable == 1, disable == 0 */
+#define TCP_FLAG_SYN    1   /* sync; enable == 1, disable == 0 */
+#define TCP_FLAG_RST    0   /* reset; enable == 1, disable == 0 */
+#define TCP_FLAG_PSH    0   /* push; enable == 1, disable == 0 */
+#define TCP_FLAG_ACK    0   /* acknowledgement; enable == 1, disable == 0 */
+#define TCP_FLAG_URG    0   /* urgent; enable == 1, disable == 0 */
+#define TCP_FLAG_ECE    0   /* explicit congestion (notification) echo */
+#define TCP_FLAG_CWR    0   /* congestion window reduced */
 
 int main(int argc, char **argv)
 {
-	int 				dport, sd, pktsz, optval = 1;
-	const char 			*src, *dst;
-	unsigned char 		data[0]; /* no data segment */
-	struct sockaddr_in 	sin;
-	struct tcphdr 		tcp_hdr;
-	 
+	int                 res, dport, sd, pktsz, optval = 1;
+	char 	            *src, *dst;
+	unsigned char       data[0]; /* no data (payload) segment */
+    struct addrinfo     hints, *result;
+	struct sockaddr_in  sa_in, *saddr, *daddr;
+	struct tcphdr       tcp_hdr;
+	
 	if(argc != MAX_ARG){
-		fprintf(stderr, "Usage:\n\n%s %s\n\n%s\n%s\n%s\n", 
+		fprintf(stderr, "Usage: %s %s\n\n%s\n%s\n%s\n\n", 
 			NAME, "<src> <dst> <dport>", 
-			"<src>	# the source address to spoof", 
-			"<dst>	# the destination address of the victim to send the packet to",
-			"<dport> # the TCP destination port to send the packet to");              
+			"<src>	 # source IPv4 address or hostname to spoof", 
+			"<dst>	 # destination IPv4 address or hostname of victim",
+			"<dport> # destination port to send spoofed TCP packet");              
 		return 1;
 	}
+    
+    /* setup source IPv4 / hostname */
+    if((src = (char *) malloc(HOST_SZ)) == NULL){
+        fprintf(stderr, "%s: src: malloc: %s\n", NAME, strerror(errno));
+        return 1;
+    }
+    
+    memset(&hints, 0, sizeof(struct addrinfo));
+    memset(src, 0, HOST_SZ);
+    hints.ai_family = AF_INET;
 	
-	src = argv[1];
-	dst = argv[2];
-	dport = atoi(argv[3]);
-	
+    if((res = getaddrinfo(argv[1], NULL, &hints, &result)) != 0){
+        fprintf(stderr, "%s: src: getaddrinfo: %s\n", NAME, gai_strerror(res));
+        return 1;
+    }
+    
+    saddr = (struct sockaddr_in *) result->ai_addr;
+    memmove(src, inet_ntoa(saddr->sin_addr), HOST_SZ); 
+    printf("%s: using source: %s\n", NAME, src);
+    
+    /* setup destination IPv4 / hostname */
+    if((dst = (char *) malloc(HOST_SZ)) == NULL){
+        fprintf(stderr, "%s: dst: malloc: %s\n", NAME, strerror(errno));
+        return 1;
+    }
+    
+    memset(&hints, 0, sizeof(struct addrinfo));
+    memset(dst, 0, HOST_SZ);
+    hints.ai_family = AF_INET;   
+    
+    if((res = getaddrinfo(argv[2], NULL, &hints, &result)) != 0){
+        fprintf(stderr, "%s: dst: getaddrinfo: %s\n", NAME, gai_strerror(res));
+        return 1;
+    }
+    
+    daddr = (struct sockaddr_in *) result->ai_addr;
+    memmove(dst, inet_ntoa(daddr->sin_addr), HOST_SZ);   
+    printf("%s: using destination: %s\n", NAME, dst);
+    
+    /* set destination port for sending packet */
+    dport = atoi(argv[3]);
+    
 	if(dport < 0 || dport > 65535){
 		fprintf(stderr, "%s: destination port outside of range: %d\n", NAME, dport);
 		return 1;
 	}
 
     /* socket address */
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(dport);
-	sin.sin_addr.s_addr = inet_addr(dst);
+	sa_in.sin_family = AF_INET;
+	sa_in.sin_port = htons(dport);
+	sa_in.sin_addr.s_addr = inet_addr(dst);
 
 #ifdef LINUX
 	struct iphdr ip_hdr;
@@ -214,15 +262,13 @@ int main(int argc, char **argv)
 	fprintf(stderr, "%s: Target OS macro integrity issue. Aborting.\n", NAME);
 	return 1;
 #endif
-	
-    pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data);
     
 	/* create socket */
 	if((sd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1){
 		fprintf(stderr, "%s: socket: %s\n", NAME, strerror(errno));
 		return 1;
 	}
-	
+    	
 	printf("%s: socket descriptor created.\n", NAME);
 	
 	/* set socket options */
@@ -234,18 +280,24 @@ int main(int argc, char **argv)
 	printf("%s: socket options set.\n", NAME);
 	
 	/* build packet */
+    pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data);
 	unsigned char pkt[pktsz];
 	memcpy(pkt, &ip_hdr, sizeof(ip_hdr));
 	memcpy(pkt + sizeof(ip_hdr), &tcp_hdr, sizeof(tcp_hdr));
 	memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, sizeof(data));
 	
 	/* send packet */
-	if(sendto(sd, pkt, sizeof(pkt), 0, (struct sockaddr *)&sin, sizeof(sin)) < 0){
+	if(sendto(sd, pkt, sizeof(pkt), 0, (struct sockaddr *)&sa_in, sizeof(sa_in)) < 0){
 		fprintf(stderr, "%s: sendto: %s\n", NAME, strerror(errno));
 		return 1;
 	}
 
 	printf("%s: packet sent from %s to %s:%d.\n", NAME, src, dst, dport);
 
+    /* clean up */
+    free(src);
+    free(dst);
+    freeaddrinfo(result);
+    
 	return 0;
 }
