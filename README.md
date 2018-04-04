@@ -72,10 +72,10 @@ spoof <arguments> [option]
 -s <src>     # Source IPv4 address or hostname to spoof
 -d <dst>     # Destination IPv4 address or hostname of victim
 -p <dport>   # Destination port to send spoofed TCP packet
-<\pre>
+
 Execute:
 ========
-
+<pre>
 Execute (example 1):
         
 $ sudo ./spoof -s 123.45.67.8 -d 192.168.0.10 -p 55555
