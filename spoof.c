@@ -78,6 +78,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -265,7 +266,9 @@ int main(int argc, char **argv)
     sa_in.sin_family = AF_INET;
     sa_in.sin_port = htons(dport);
     sa_in.sin_addr.s_addr = inet_addr(dst);
-
+    
+    srand(time(0)); /* get some better entropy for rand(3) */
+     
 #ifdef LINUX
     struct iphdr ip_hdr;
 	
