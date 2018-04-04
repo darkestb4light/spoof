@@ -73,6 +73,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,6 +105,7 @@
 #define NAME	        "spoof"
 #define MIN_ARG         7
 #define MAX_ARG         9
+#define MAX_OPTS        4
 #define MAX_FLAGS       8
 #define HOST_SZ         255
 
@@ -125,17 +127,18 @@ void usage(void);
 
 int main(int argc, char **argv)
 {
-    int                 i, j, do_f, res, dport, 
+    int                 i, j, optflag[MAX_OPTS], res, dport, 
                         sd, pktsz, optval = 1;
-    char                *flag, *src, *dst, 
-                        tcpflags[MAX_FLAGS][MAX_FLAGS] = {{'a', '0',},
-                                                          {'c', '0',},
-                                                          {'e', '0',},
-                                                          {'f', '0',}, 
-                                                          {'p', '0',},
-                                                          {'r', '0',},
-                                                          {'s', '0',},
-                                                          {'u', '0'}};
+    char                *opt[MAX_OPTS] = {"-f", "-s", "-d", "-p"}, 
+                        *flag, *src, *dst,
+                        tcpflags[MAX_FLAGS][2] = {{'a', '0',},
+                                                  {'c', '0',},
+                                                  {'e', '0',},
+                                                  {'f', '0',}, 
+                                                  {'p', '0',},
+                                                  {'r', '0',},
+                                                  {'s', '0',},
+                                                  {'u', '0'}};
     unsigned char       data[0]; /* no data (payload) segment */
     struct addrinfo     hints, *result;
     struct sockaddr_in  sa_in, *saddr, *daddr;
@@ -146,20 +149,20 @@ int main(int argc, char **argv)
     
     for(i = 1; i != argc; ++i)
     {
-        if(strncmp(argv[i], "-f", 3) == 0){
+        if(strncmp(argv[i], opt[0], 3) == 0){
             flag = argv[++i];
             while(*flag != '\0')
             {
-                do_f = 0;
+                optflag[0] = 0;
                 for(j = 0; j != MAX_FLAGS; ++j)
                 {
                     if(tolower(*flag) == *tcpflags[j]){
-                        do_f = 1;
+                        optflag[0] = 1;
                         tcpflags[j][1] = '1';
                         break;
                     }
                 }
-                if(! do_f){
+                if(! optflag[0]){
                     fprintf(stderr, "%s: %s: %s: %c\n", NAME, argv[i-1], 
                         "invalid TCP flag", *flag);
                     usage();
@@ -200,7 +203,8 @@ int main(int argc, char **argv)
                 flag++;
             }
         }else{
-            if(strncmp(argv[i], "-s", 3) == 0){
+            if(strncmp(argv[i], opt[1], 3) == 0){
+                optflag[1] = 0;
                 if((src = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: src: malloc: %s\n", NAME, strerror(errno));
                     exit(1);
@@ -213,9 +217,11 @@ int main(int argc, char **argv)
                     exit(1);
                 }
                 saddr = (struct sockaddr_in *) result->ai_addr;
-                memmove(src, inet_ntoa(saddr->sin_addr), HOST_SZ); 
+                memmove(src, inet_ntoa(saddr->sin_addr), HOST_SZ);
+                optflag[1] = 1;
                 printf("%s: source IP: %s\n", NAME, src);
-            }else if(strncmp(argv[i], "-d", 3) == 0){
+            }else if(strncmp(argv[i], opt[2], 3) == 0){
+                optflag[2] = 0;
                 if((dst = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: dst: malloc: %s\n", NAME, strerror(errno));
                     exit(1);
@@ -230,12 +236,15 @@ int main(int argc, char **argv)
                 daddr = (struct sockaddr_in *) result->ai_addr;
                 memmove(dst, inet_ntoa(daddr->sin_addr), HOST_SZ);   
                 printf("%s: destination IP: %s\n", NAME, dst);
-            }else if(strncmp(argv[i], "-p", 3) == 0){
+                optflag[2] = 1;
+            }else if(strncmp(argv[i], opt[3], 3) == 0){
+                optflag[3] = 0;
                 dport = strtol(argv[++i], 0, 10);
                 if(dport < 0 || dport > 65535){
                     fprintf(stderr, "%s: destination port outside of range: %d\n", NAME, dport);
                     exit(1);
                 }
+                optflag[3] = 1;
                 printf("%s: destination port: %d\n", NAME, dport);
             }else{
                 fprintf(stderr, "%s: invalid argument passed: %s\n", NAME, argv[i]);
@@ -243,7 +252,15 @@ int main(int argc, char **argv)
             }
         }
     }
-
+    
+    for(i = 1; i < MAX_OPTS; ++i)
+    {
+        if(! optflag[i]){
+            fprintf(stderr, "%s: missing a required argument: %s\n", NAME, opt[i]);
+            exit(1);
+        }
+    }
+    
     /* socket address */
     sa_in.sin_family = AF_INET;
     sa_in.sin_port = htons(dport);
@@ -280,7 +297,8 @@ int main(int argc, char **argv)
     tcp_hdr.urg_ptr = htons(0);
     tcp_hdr.source = htons(rand() % 65535);
     tcp_hdr.dest = htons(dport);
-    tcp_hdr.seq = htonl(0);
+    tcp_hdr.seq = htonl(rand() % UINT_MAX);
+    tcp_hdr.seq = htonl(23456);
     tcp_hdr.ack_seq = htonl(0);
 
     ip_hdr.tot_len = htons(sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data));
@@ -317,7 +335,7 @@ int main(int argc, char **argv)
     tcp_hdr.th_urp = htons(0);
     tcp_hdr.th_sport = htons(rand() % 65535);
     tcp_hdr.th_dport = htons(dport);
-    tcp_hdr.th_seq = htonl(0);
+    tcp_hdr.th_seq = (rand() % UINT_MAX);
     tcp_hdr.th_ack = htonl(0);
 
     if(AVOID_IPLEN_HTONS)
