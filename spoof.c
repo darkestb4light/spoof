@@ -104,9 +104,7 @@
 #endif
 
 #define NAME	        "spoof"
-#define MIN_ARG         7
-#define MAX_ARG         9
-#define MAX_OPTS        4
+#define MAX_ARGS        4
 #define MAX_FLAGS       8
 #define HOST_SZ         255
 
@@ -128,9 +126,9 @@ void usage(void);
 
 int main(int argc, char **argv)
 {
-    int                 i, j, optflag[MAX_OPTS], res, dport, 
+    int                 i, j, optflag[MAX_ARGS] = {0}, res, dport, 
                         sd, pktsz, optval = 1;
-    char                *opt[MAX_OPTS] = {"-f", "-s", "-d", "-p"}, 
+    char                *opt[MAX_ARGS] = {"-f", "-s", "-d", "-p"}, 
                         *flag, *src, *dst,
                         tcpflags[MAX_FLAGS][2] = {{'a', '0',},
                                                   {'c', '0',},
@@ -146,11 +144,14 @@ int main(int argc, char **argv)
     struct tcphdr       tcp_hdr;
 	
     /* process arguments */
-    if(argc != MIN_ARG && argc != MAX_ARG) usage();
-    
     for(i = 1; i != argc; ++i)
     {
         if(strncmp(argv[i], opt[0], 3) == 0){
+            if(argv[i+1] == NULL){
+                fprintf(stderr, "%s: %s: %s\n", NAME, argv[i], 
+                    "option requires at least one valid TCP flag");
+                usage();
+            }
             flag = argv[++i];
             while(*flag != '\0')
             {
@@ -205,6 +206,7 @@ int main(int argc, char **argv)
             }
         }else{
             if(strncmp(argv[i], opt[1], 3) == 0){
+                if(argv[i+1] == NULL) break;
                 optflag[1] = 0;
                 if((src = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: src: malloc: %s\n", NAME, strerror(errno));
@@ -222,6 +224,7 @@ int main(int argc, char **argv)
                 optflag[1] = 1;
                 printf("%s: source IP: %s\n", NAME, src);
             }else if(strncmp(argv[i], opt[2], 3) == 0){
+                if(argv[i+1] == NULL) break;
                 optflag[2] = 0;
                 if((dst = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: dst: malloc: %s\n", NAME, strerror(errno));
@@ -239,6 +242,7 @@ int main(int argc, char **argv)
                 printf("%s: destination IP: %s\n", NAME, dst);
                 optflag[2] = 1;
             }else if(strncmp(argv[i], opt[3], 3) == 0){
+                if(argv[i+1] == NULL) break;
                 optflag[3] = 0;
                 dport = strtol(argv[++i], 0, 10);
                 if(dport < 0 || dport > 65535){
@@ -254,11 +258,11 @@ int main(int argc, char **argv)
         }
     }
     
-    for(i = 1; i < MAX_OPTS; ++i)
+    for(i = 1; i != MAX_ARGS; ++i)
     {
         if(! optflag[i]){
-            fprintf(stderr, "%s: missing a required argument: %s\n", NAME, opt[i]);
-            exit(1);
+            fprintf(stderr, "%s: argument (or parameter to it) required: %s\n", NAME, opt[i]);
+            usage();
         }
     }
     
