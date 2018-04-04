@@ -8,7 +8,7 @@ intent is to:
 source address within IP header and TCP flags within TCP header unless 
 you know what your doing)
 
-Purpose:
+# Purpose:
 ========
 
 Demonstrate a PoC for dealing with raw sockets. The driver for this was to 
@@ -22,7 +22,7 @@ This is a proof of concept and is not intended to:
 
 ** See the license that should accompany this README and code.
 
-Note:
+# Note:
 =====
 
 To get deeper than the typical app layer, we need to deal with raw sockets. 
@@ -42,19 +42,19 @@ On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to
 fail with: "Can't assign requested address". Use "localhost" or another 
 IPv4 address. The former will use the broadcast address as the source.
 
-Compile:
+# Compile:
 ========
 
 gcc -D \<TARGET-OS\> -o spoof spoof.c
 
 Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform you are compiling on).
 
-Usage:
+# Usage:
 ======
 <pre>
 spoof [option] <arguments>
 spoof <arguments> [option]
-<pre>
+
 [Options]
 -f <tcpflag> # One or more TCP flags to enable. If using
              # more than one flag, each should be appended
@@ -67,13 +67,13 @@ spoof <arguments> [option]
              # R or r (enables the RST bit)
              # S or s (enables the SYN bit)
              # U or u (enables the URG bit)
-<pre>
+
 [Arguments]
 -s <src>     # Source IPv4 address or hostname to spoof
 -d <dst>     # Destination IPv4 address or hostname of victim
 -p <dport>   # Destination port to send spoofed TCP packet
 
-Execute:
+# Execute:
 ========
 
 <pre>
