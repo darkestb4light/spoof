@@ -49,26 +49,26 @@ Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform
 # Usage:
 
 <pre>
-spoof [option] <arguments>
-spoof <arguments> [option]
+spoof [option] \<arguments\>
+spoof \<arguments\> [option]
 
 [Options]
--f <tcpflag> # One or more TCP flags to enable. If using
-             # more than one flag, each should be appended
-             # together (e.g. ASRF). The available flags are:
-             # A or a (enables the ACK bit)
-             # C or c (enables the CWR bit)
-             # E or e (enables the ECE bit)
-             # F or f (enables the FIN bit)
-             # P or p (enables the PSH bit)
-             # R or r (enables the RST bit)
-             # S or s (enables the SYN bit)
-             # U or u (enables the URG bit)
+-f \<tcpflag\> \# One or more TCP flags to enable. If using
+             \# more than one flag, each should be appended
+             \# together (e.g. ASRF). The available flags are:
+             \# A or a (enables the ACK bit)
+             \# C or c (enables the CWR bit)
+             \# E or e (enables the ECE bit)
+             \# F or f (enables the FIN bit)
+             \# P or p (enables the PSH bit)
+             \# R or r (enables the RST bit)
+             \# S or s (enables the SYN bit)
+             \# U or u (enables the URG bit)
 
 [Arguments]
--s <src>     # Source IPv4 address or hostname to spoof
--d <dst>     # Destination IPv4 address or hostname of victim
--p <dport>   # Destination port to send spoofed TCP packet
+-s \<src\>     \# Source IPv4 address or hostname to spoof
+-d \<dst\>     \# Destination IPv4 address or hostname of victim
+-p \<dport\>   \# Destination port to send spoofed TCP packet
   
 # Execute:
 
