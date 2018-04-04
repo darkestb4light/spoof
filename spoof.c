@@ -298,7 +298,6 @@ int main(int argc, char **argv)
     tcp_hdr.source = htons(rand() % 65535);
     tcp_hdr.dest = htons(dport);
     tcp_hdr.seq = htonl(rand() % UINT_MAX);
-    tcp_hdr.seq = htonl(23456);
     tcp_hdr.ack_seq = htonl(0);
 
     ip_hdr.tot_len = htons(sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data));
