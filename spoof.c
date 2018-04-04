@@ -21,7 +21,7 @@
         field of the IP header. The destination address will be inputted 
         into the destination field of the IP header. The destination port 
         will be placed into the destination port field of the TCP header.
-        The inent would be to use a source address that is NOT the real 
+        The intent would be to use a source address that is NOT the real 
         source address or hostname, thereby creating a "spoof" scenario.
 
         On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) 
@@ -33,8 +33,8 @@
         Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX (depending on the 
         platform you are compiling on).
     Usage: 
-        spoof [option] <arguments>
-        spoof <arguments> [option]
+        spoof [options] <arguments>
+        spoof <arguments> [options]
 
         [Options]
         -f <tcpflag> # One or more TCP flags to enable. If using
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 void usage(void)
 {           
     fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-        NAME, "[option] <arguments>", NAME, "<arguments> [option]\n",
+        NAME, "[options] <arguments>", NAME, "<arguments> [options]\n",
         "\n[Options]\n",
         "-f <tcpflag...>\t# Optional TCP flag(s) to enable. If using\n",
         "\t\t# more than one flag, each should be appended\n",
