@@ -48,7 +48,7 @@ Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform
 
 # Usage:
 
-<code>
+<pre>
 spoof [option] <arguments>
 spoof <arguments> [option]
 
@@ -72,7 +72,6 @@ spoof <arguments> [option]
   </code>
   
 # Execute:
-========
 
 <pre>
 Example 1:
