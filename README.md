@@ -49,8 +49,8 @@ Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform
 # Usage:
 
 <pre>
-spoof [option] \<arguments\>
-spoof \<arguments\> [option]
+spoof \[option\] \<arguments\>
+spoof \<arguments\> \[option\]
 
 [Options]
 -f \<tcpflag\> \# One or more TCP flags to enable. If using
