@@ -54,7 +54,7 @@ Usage:
 <pre>
 spoof [option] <arguments>
 spoof <arguments> [option]
-
+<pre>
 [Options]
 -f <tcpflag> # One or more TCP flags to enable. If using
              # more than one flag, each should be appended
@@ -67,15 +67,15 @@ spoof <arguments> [option]
              # R or r (enables the RST bit)
              # S or s (enables the SYN bit)
              # U or u (enables the URG bit)
-
+<pre>
 [Arguments]
 -s <src>     # Source IPv4 address or hostname to spoof
 -d <dst>     # Destination IPv4 address or hostname of victim
 -p <dport>   # Destination port to send spoofed TCP packet
 
-
 Execute:
 ========
+
 <pre>
 Example 1:
         
