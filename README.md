@@ -35,7 +35,7 @@ source address or hostname, thereby creating a "spoof" scenario.
 
 On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to 
 fail with: "Can't assign requested address". Use "localhost" or another 
-IPv4 address. The former will use the broadcast address as the source.
+IPv4 address or hostname.
 
 ## Compile:
 
