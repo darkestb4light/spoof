@@ -76,7 +76,7 @@ spoof <arguments> [option]
 Execute:
 ========
 <pre>
-Execute (example 1):
+Example 1:
         
 $ sudo ./spoof -s 123.45.67.8 -d 192.168.0.10 -p 55555
 
@@ -84,7 +84,7 @@ The above will not set any TCP flags, spoof the source address
 "123.45.67.8", and send a packet to the destination "192.168.0.10" 
 over TCP port of 55555.
 
-Execute (example 2):
+Example 2:
 
 $ sudo ./spoof -f FPU -d my.victim.com -p 1337 -s foobar.com 
 
