@@ -9,7 +9,6 @@ source address within IP header and TCP flags within TCP header unless
 you know what your doing)
 
 # Purpose:
-========
 
 Demonstrate a PoC for dealing with raw sockets. The driver for this was to 
 provide an interface for spoofing a source IPv4 address or hostname.
@@ -23,7 +22,6 @@ This is a proof of concept and is not intended to:
 ** See the license that should accompany this README and code.
 
 # Note:
-=====
 
 To get deeper than the typical app layer, we need to deal with raw sockets. 
 This requires elevated privileges since you could do evil things. 
@@ -43,15 +41,14 @@ fail with: "Can't assign requested address". Use "localhost" or another
 IPv4 address. The former will use the broadcast address as the source.
 
 # Compile:
-========
 
 gcc -D \<TARGET-OS\> -o spoof spoof.c
 
 Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform you are compiling on).
 
 # Usage:
-======
-<pre>
+
+<code>
 spoof [option] <arguments>
 spoof <arguments> [option]
 
@@ -72,7 +69,8 @@ spoof <arguments> [option]
 -s <src>     # Source IPv4 address or hostname to spoof
 -d <dst>     # Destination IPv4 address or hostname of victim
 -p <dport>   # Destination port to send spoofed TCP packet
-
+  </code>
+  
 # Execute:
 ========
 
