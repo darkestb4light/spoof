@@ -26,14 +26,11 @@ This is a proof of concept and is not intended to:
 To get deeper than the typical app layer, we need to deal with raw sockets. 
 This requires elevated privileges since you could do evil things. 
 
-The source argument passed will be inputted into the source address field 
-of the IP header. 
-
 The source argument passed will be inputted into the source address 
 field of the IP header. The destination address will be inputted 
 into the destination field of the IP header. The destination port 
 will be placed into the destination port field of the TCP header.
-The inent would be to use a source address that is NOT the real 
+The intent would be to use a source address that is NOT the real 
 source address or hostname, thereby creating a "spoof" scenario.
 
 On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to 
