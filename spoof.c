@@ -116,11 +116,11 @@
 #define IP_FRAGOFF      0   /* fragment offset */
 #define IP_TIMETOLIVE   64  /* time to live */
 #define IP_PROTO        6   /* protocol */
-#define IP_CHKSUM       0   /* checksum */
+#define IP_CHKSUM       0   /* TODO: IP checksum */
 
 /* Flags for TCP header */
 #define TCP_DATAOFF     5   /* data offset */
-#define TCP_CHECKSUM    0   /* checksum */
+#define TCP_CHECKSUM    0   /* TODO: TCP checksum */
 
 void usage(void);
 
