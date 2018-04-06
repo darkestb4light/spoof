@@ -112,7 +112,15 @@
 #define IP_HDRLEN       5   /* header length */
 #define IP_VER          4   /* version */
 #define IP_TYPEOFSERV   0   /* type of service */
-#define IP_TOTLEN       0   /* total length (computed after building IP/TCP headers) */
+#ifdef LINUX                /* Linux total length */
+    #define IP_TOTLEN  sizeof(struct iphdr) + sizeof(struct tcphdr); 
+#elif FREEBSD | OSX         /* BSD total length */
+   #define IP_TOTLEN  sizeof(struct ip) + sizeof(struct tcphdr); 
+#else
+    #error Target OS macro not specified or unsupported.
+    #error Unable to compute IP_TOTLEN.
+    #error Aborting compilation.
+#endif
 #define IP_FRAGOFF      0   /* fragment offset */
 #define IP_TIMETOLIVE   64  /* time to live */
 #define IP_PROTO        6   /* protocol */
