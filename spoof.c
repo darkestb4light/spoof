@@ -447,7 +447,7 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
         oddbyte = 0;
         *((u_char*) &oddbyte) = *(u_char *) ptr;
         sum += oddbyte;
-  }
+    }
 
   sum = (sum >> 16) + (sum & 0xffff);
   sum = sum + (sum >> 16);
