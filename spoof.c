@@ -452,8 +452,8 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
     sum = (sum >> 16) + (sum & 0xffff);
     sum = sum + (sum >> 16);
     answer = (short) ~sum;
-
-  return(answer);
+    
+    return(answer);
 }
 void usage(void)
 {           
