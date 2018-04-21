@@ -107,6 +107,7 @@
 #define MAX_ARGS        4
 #define MAX_FLAGS       8
 #define HOST_SZ         255
+#define MAX_LEN         0   /* set to 0 for no data (payload) segment */
 
 /* Flags for IP header */
 #define IP_HDRLEN       5   /* header length */
@@ -124,12 +125,24 @@
 #define IP_FRAGOFF      0   /* fragment offset */
 #define IP_TIMETOLIVE   64  /* time to live */
 #define IP_PROTO        6   /* protocol */
-#define IP_CHKSUM       0   /* TODO: IP checksum */
+#define IP_CHKSUM       0   /* IP checksum initial value */
 
 /* Flags for TCP header */
 #define TCP_DATAOFF     5   /* data offset */
-#define TCP_CHECKSUM    0   /* TODO: TCP checksum */
+#define TCP_WINDOW      0   /* window size */
+#define TCP_URGPTR      0   /* urgent pointer */
+#define TCP_CHECKSUM    0   /* TCP checksum initial value */
 
+struct tcp_ph               /* pseudo header per rfc793 */
+{
+    u_int32_t saddr;
+    u_int32_t daddr;
+    u_int8_t zero;
+    u_int8_t proto;
+    u_int16_t length;
+};
+
+unsigned short csum(unsigned short *, int);
 void usage(void);
 
 int main(int argc, char **argv)
@@ -146,7 +159,8 @@ int main(int argc, char **argv)
                                                   {'r', '0',},
                                                   {'s', '0',},
                                                   {'u', '0'}};
-    unsigned char       data[0]; /* no data (payload) segment */
+    unsigned char       data[MAX_LEN];
+    unsigned char       *pkt;
     struct addrinfo     hints, *result;
     struct sockaddr_in  sa_in, *saddr, *daddr;
     struct tcphdr       tcp_hdr;
@@ -308,8 +322,8 @@ int main(int argc, char **argv)
     tcp_hdr.syn = strtol(&(tcpflags[6][1]), 0, 10);
     tcp_hdr.urg = strtol(&(tcpflags[7][1]), 0, 10);
     tcp_hdr.check = TCP_CHECKSUM;
-    tcp_hdr.window = htons(0);
-    tcp_hdr.urg_ptr = htons(0);
+    tcp_hdr.window = htons(TCP_WINDOW);
+    tcp_hdr.urg_ptr = htons(TCP_URGPTR);
     tcp_hdr.source = htons(rand() % 65535);
     tcp_hdr.dest = htons(dport);
     tcp_hdr.seq = htonl(rand() % UINT_MAX);
@@ -345,8 +359,8 @@ int main(int argc, char **argv)
     if(strtol(&(tcpflags[7][1]), 0, 10)) tcp_flags |= TH_URG;
     tcp_hdr.th_flags = tcp_flags;
     tcp_hdr.th_sum = TCP_CHECKSUM;
-    tcp_hdr.th_win = htons(0);
-    tcp_hdr.th_urp = htons(0);
+    tcp_hdr.th_win = htons(TCP_WINDOW);
+    tcp_hdr.th_urp = htons(TCP_URGPTR);
     tcp_hdr.th_sport = htons(rand() % 65535);
     tcp_hdr.th_dport = htons(dport);
     tcp_hdr.th_seq = (rand() % UINT_MAX);
@@ -357,7 +371,7 @@ int main(int argc, char **argv)
     else
         ip_hdr.ip_len = htons(sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data));
 #else /* should never fire if macro definitions are in sync */
-    fprintf(stderr, "%s: target OS macro integrity issue - aborting.\n", NAME);
+    fprintf(stderr, "%s: target OS macro integrity issue - aborting setting headers.\n", NAME);
     exit(1);
 #endif
     
@@ -381,15 +395,28 @@ int main(int argc, char **argv)
 	
     /* build packet */
     pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data);
-    unsigned char pkt[pktsz];
+    if((pkt = (unsigned char *) malloc(pktsz)) == NULL){
+        fprintf(stderr, "%s: pkt: malloc: %s\n", NAME, strerror(errno));
+        exit(1);
+    }
+    memset(pkt, 0, pktsz);
     memcpy(pkt, &ip_hdr, sizeof(ip_hdr));
     memcpy(pkt + sizeof(ip_hdr), &tcp_hdr, sizeof(tcp_hdr));
     memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, sizeof(data));
-    
-    printf("%s: packet built\n", NAME);
+
+#ifdef LINUX
+    ip_hdr.check = csum((unsigned short *) pkt, ip_hdr.tot_len);
+    printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.check);
+#elif FREEBSD | OSX
+    ip_hdr.ip_sum = csum((unsigned short *) pkt, ip_hdr.ip_len);
+    printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.ip_sum);
+#else /* should never fire if macro definitions are in sync */
+    fprintf(stderr, "%s: target OS macro integrity issue - aborting IP checksum.\n", NAME);
+    exit(1);
+#endif
 	
     /* send packet */
-    if(sendto(sd, pkt, sizeof(pkt), 0, (struct sockaddr *)&sa_in, sizeof(sa_in)) < 0){
+    if(sendto(sd, pkt, pktsz, 0, (struct sockaddr *)&sa_in, sizeof(sa_in)) < 0){
         fprintf(stderr, "%s: sendto: %s\n", NAME, strerror(errno));
         exit(1);
     }
@@ -402,6 +429,30 @@ int main(int argc, char **argv)
     freeaddrinfo(result);
 
     exit(0);
+}
+unsigned short csum(unsigned short *ptr, int nbytes)
+{
+    long sum = 0;
+    unsigned short oddbyte;
+    short answer;
+    
+    while(nbytes > 1)
+    {
+        sum += *ptr++;
+        nbytes -= 2;
+    }
+    
+    if(nbytes == 1){
+        oddbyte = 0;
+        *((u_char*) &oddbyte) = *(u_char *) ptr;
+        sum += oddbyte;
+  }
+
+  sum = (sum >> 16) + (sum & 0xffff);
+  sum = sum + (sum >> 16);
+  answer = (short) ~sum;
+
+  return(answer);
 }
 void usage(void)
 {           
