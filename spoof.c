@@ -427,6 +427,7 @@ int main(int argc, char **argv)
     free(src);
     free(dst);
     freeaddrinfo(result);
+    free(pkt);
 
     exit(0);
 }
