@@ -448,10 +448,10 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
         *((u_char*) &oddbyte) = *(u_char *) ptr;
         sum += oddbyte;
     }
-
-  sum = (sum >> 16) + (sum & 0xffff);
-  sum = sum + (sum >> 16);
-  answer = (short) ~sum;
+    
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum = sum + (sum >> 16);
+    answer = (short) ~sum;
 
   return(answer);
 }
