@@ -142,7 +142,7 @@ struct tcp_ph               /* pseudo header per rfc793 */
     u_int16_t length;
 };
 
-unsigned short csum(unsigned short *, int);
+unsigned short ip_csum(unsigned short *, int);
 void usage(void);
 
 int main(int argc, char **argv)
@@ -405,10 +405,10 @@ int main(int argc, char **argv)
     memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, sizeof(data));
 
 #ifdef LINUX
-    ip_hdr.check = csum((unsigned short *) pkt, ip_hdr.tot_len);
+    ip_hdr.check = ip_csum((unsigned short *) pkt, ip_hdr.tot_len);
     printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.check);
 #elif FREEBSD | OSX
-    ip_hdr.ip_sum = csum((unsigned short *) pkt, ip_hdr.ip_len);
+    ip_hdr.ip_sum = ip_csum((unsigned short *) pkt, ip_hdr.ip_len);
     printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.ip_sum);
 #else /* should never fire if macro definitions are in sync */
     fprintf(stderr, "%s: target OS macro integrity issue - aborting IP checksum.\n", NAME);
@@ -431,7 +431,7 @@ int main(int argc, char **argv)
 
     exit(0);
 }
-unsigned short csum(unsigned short *ptr, int nbytes)
+unsigned short ip_csum(unsigned short *ptr, int nbytes)
 {
     long sum = 0;
     unsigned short oddbyte;
