@@ -97,12 +97,6 @@
     #error Aborting compilation.
 #endif
 
-#ifdef OSX
-    #define AVOID_IPLEN_HTONS 1
-#else
-    #define AVOID_IPLEN_HTONS 0
-#endif
-
 #define NAME	        "spoof"
 #define MAX_ARGS        4
 #define MAX_FLAGS       8
@@ -114,9 +108,9 @@
 #define IP_VER          4   /* version */
 #define IP_TYPEOFSERV   0   /* type of service */
 #ifdef LINUX                /* Linux total length */
-    #define IP_TOTLEN  sizeof(struct iphdr) + sizeof(struct tcphdr); 
+    #define IP_TOTLEN  sizeof(struct iphdr) + sizeof(struct tcphdr) + sizeof(data); 
 #elif FREEBSD | OSX         /* BSD total length */
-   #define IP_TOTLEN  sizeof(struct ip) + sizeof(struct tcphdr); 
+   #define IP_TOTLEN  sizeof(struct ip) + sizeof(struct tcphdr) + sizeof(data); 
 #else
     #error Target OS macro not specified or unsupported.
     #error Unable to compute IP_TOTLEN.
@@ -142,7 +136,7 @@ struct tcp_ph               /* pseudo header per rfc793 */
     u_int16_t length;
 };
 
-unsigned short ip_csum(unsigned short *, int);
+unsigned short ip_csum(unsigned short *, int); /* derived from rfc 1071 */
 void usage(void);
 
 int main(int argc, char **argv)
@@ -328,8 +322,6 @@ int main(int argc, char **argv)
     tcp_hdr.dest = htons(dport);
     tcp_hdr.seq = htonl(rand() % UINT_MAX);
     tcp_hdr.ack_seq = htonl(0);
-
-    ip_hdr.tot_len = htons(sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data));
 #elif FREEBSD | OSX
     struct ip ip_hdr;
     unsigned int tcp_flags = 0;
@@ -365,11 +357,6 @@ int main(int argc, char **argv)
     tcp_hdr.th_dport = htons(dport);
     tcp_hdr.th_seq = (rand() % UINT_MAX);
     tcp_hdr.th_ack = htonl(0);
-
-    if(AVOID_IPLEN_HTONS)
-        ip_hdr.ip_len = sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data);
-    else
-        ip_hdr.ip_len = htons(sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data));
 #else /* should never fire if macro definitions are in sync */
     fprintf(stderr, "%s: target OS macro integrity issue - aborting setting headers.\n", NAME);
     exit(1);
@@ -433,27 +420,22 @@ int main(int argc, char **argv)
 }
 unsigned short ip_csum(unsigned short *ptr, int nbytes)
 {
-    long sum = 0;
-    unsigned short oddbyte;
-    short answer;
+    register long sum = 0;
     
-    while(nbytes > 1)
-    {
+    while(nbytes > 1){
         sum += *ptr++;
         nbytes -= 2;
     }
     
-    if(nbytes == 1){
-        oddbyte = 0;
-        *((u_char*) &oddbyte) = *(u_char *) ptr;
-        sum += oddbyte;
-    }
+    /*  add left-over byte, if any */
+    if(nbytes > 0)
+        sum += *ptr;
     
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum = sum + (sum >> 16);
-    answer = (short) ~sum;
+    /*  fold 32-bit sum to 16 bits */
+    while (sum >> 16)
+        sum = (sum & 0xffff) + (sum >> 16);
     
-    return(answer);
+    return (~sum);
 }
 void usage(void)
 {           
