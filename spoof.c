@@ -48,6 +48,7 @@
                      # R or r (enables the RST bit)
                      # S or s (enables the SYN bit)
                      # U or u (enables the URG bit)
+        -m <message> # Optional message to send (maximum of 128 bytes)
         
         [Arguments]
         -s <src>     # Source IPv4 address or hostname to spoof
@@ -98,24 +99,16 @@
 #endif
 
 #define NAME	        "spoof"
-#define MAX_ARGS        4
+#define MAX_ARGS        5
+#define REQ_ARG_OFFSET  2   /* index where required args start */
 #define MAX_FLAGS       8
 #define HOST_SZ         255
-#define MAX_LEN         0   /* set to 0 for no data (payload) segment */
+#define MAX_DATALEN     128
 
 /* Flags for IP header */
 #define IP_HDRLEN       5   /* header length */
 #define IP_VER          4   /* version */
 #define IP_TYPEOFSERV   0   /* type of service */
-#ifdef LINUX                /* Linux total length */
-    #define IP_TOTLEN  sizeof(struct iphdr) + sizeof(struct tcphdr) + sizeof(data); 
-#elif FREEBSD | OSX         /* BSD total length */
-   #define IP_TOTLEN  sizeof(struct ip) + sizeof(struct tcphdr) + sizeof(data); 
-#else
-    #error Target OS macro not specified or unsupported.
-    #error Unable to compute IP_TOTLEN.
-    #error Aborting compilation.
-#endif
 #define IP_FRAGOFF      0   /* fragment offset */
 #define IP_TIMETOLIVE   64  /* time to live */
 #define IP_PROTO        6   /* protocol */
@@ -125,15 +118,15 @@
 #define TCP_DATAOFF     5   /* data offset */
 #define TCP_WINDOW      0   /* window size */
 #define TCP_URGPTR      0   /* urgent pointer */
-#define TCP_CHECKSUM    0   /* TCP checksum initial value */
+#define TCP_CHCKSUM     0   /* TCP checksum initial value */
 
 struct tcp_ph               /* pseudo header per rfc793 */
 {
-    u_int32_t saddr;
-    u_int32_t daddr;
-    u_int8_t zero;
-    u_int8_t proto;
-    u_int16_t length;
+    u_int32_t   saddr;
+    u_int32_t   daddr;
+    u_int8_t    zero;
+    u_int8_t    proto;
+    u_int16_t   length;
 };
 
 unsigned short ip_csum(unsigned short *, int); /* derived from rfc 1071 */
@@ -141,10 +134,10 @@ void usage(void);
 
 int main(int argc, char **argv)
 {
-    int                 i, j, optflag[MAX_ARGS] = {0}, res, dport, 
-                        sd, pktsz, optval = 1;
-    char                *opt[MAX_ARGS] = {"-f", "-s", "-d", "-p"}, 
-                        *flag, *src, *dst,
+    int                 i, j, optflag[MAX_ARGS] = {0}, res, dport,
+                        sd, pktsz, datalen = 0, optval = 1;
+    char                *pkt = NULL, *flag, *src, *dst, *data = NULL,
+                        *opt[MAX_ARGS] = {"-f", "-m", "-s", "-d", "-p"},
                         tcpflags[MAX_FLAGS][2] = {{'a', '0',},
                                                   {'c', '0',},
                                                   {'e', '0',},
@@ -153,8 +146,6 @@ int main(int argc, char **argv)
                                                   {'r', '0',},
                                                   {'s', '0',},
                                                   {'u', '0'}};
-    unsigned char       data[MAX_LEN];
-    unsigned char       *pkt;
     struct addrinfo     hints, *result;
     struct sockaddr_in  sa_in, *saddr, *daddr;
     struct tcphdr       tcp_hdr;
@@ -220,10 +211,28 @@ int main(int argc, char **argv)
                 }
                 flag++;
             }
+        }else if(strncmp(argv[i], opt[1], 3) == 0){
+            if(argv[i+1] == NULL){
+                fprintf(stderr, "%s: %s: %s\n", NAME, argv[i], 
+                    "option requires at least one character or an empty string");
+                usage();
+            }
+            if((data = (char *) malloc(MAX_DATALEN+1)) == NULL){
+                fprintf(stderr, "%s: message: malloc: %s\n", NAME, strerror(errno));
+                exit(1);
+            }
+            optflag[1] = 0;
+            memset(data, '\0', MAX_DATALEN+1);
+            if((datalen = strlen(argv[++i])) <= MAX_DATALEN)
+                memcpy(data, argv[i], datalen);
+            else
+              memcpy(data, argv[i], MAX_DATALEN);  
+            optflag[1] = 1;
+            printf("%s: message: %s (%d %s)\n", NAME, data, datalen, (datalen == 1) ? "byte" : "bytes");
         }else{
-            if(strncmp(argv[i], opt[1], 3) == 0){
+            if(strncmp(argv[i], opt[2], 3) == 0){
                 if(argv[i+1] == NULL) break;
-                optflag[1] = 0;
+                optflag[2] = 0;
                 if((src = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: src: malloc: %s\n", NAME, strerror(errno));
                     exit(1);
@@ -237,11 +246,11 @@ int main(int argc, char **argv)
                 }
                 saddr = (struct sockaddr_in *) result->ai_addr;
                 memmove(src, inet_ntoa(saddr->sin_addr), HOST_SZ);
-                optflag[1] = 1;
+                optflag[2] = 1;
                 printf("%s: source IP: %s\n", NAME, src);
-            }else if(strncmp(argv[i], opt[2], 3) == 0){
+            }else if(strncmp(argv[i], opt[3], 3) == 0){
                 if(argv[i+1] == NULL) break;
-                optflag[2] = 0;
+                optflag[3] = 0;
                 if((dst = (char *) malloc(HOST_SZ)) == NULL){
                     fprintf(stderr, "%s: dst: malloc: %s\n", NAME, strerror(errno));
                     exit(1);
@@ -254,18 +263,18 @@ int main(int argc, char **argv)
                     exit(1);
                 }
                 daddr = (struct sockaddr_in *) result->ai_addr;
-                memmove(dst, inet_ntoa(daddr->sin_addr), HOST_SZ);   
+                memmove(dst, inet_ntoa(daddr->sin_addr), HOST_SZ);
+                optflag[3] = 1; 
                 printf("%s: destination IP: %s\n", NAME, dst);
-                optflag[2] = 1;
-            }else if(strncmp(argv[i], opt[3], 3) == 0){
+            }else if(strncmp(argv[i], opt[4], 3) == 0){
                 if(argv[i+1] == NULL) break;
-                optflag[3] = 0;
+                optflag[4] = 0;
                 dport = strtol(argv[++i], 0, 10);
                 if(dport < 0 || dport > 65535){
                     fprintf(stderr, "%s: destination port outside of range: %d\n", NAME, dport);
                     exit(1);
                 }
-                optflag[3] = 1;
+                optflag[4] = 1;
                 printf("%s: destination port: %d\n", NAME, dport);
             }else{
                 fprintf(stderr, "%s: invalid argument passed: %s\n", NAME, argv[i]);
@@ -274,7 +283,7 @@ int main(int argc, char **argv)
         }
     }
     
-    for(i = 1; i != MAX_ARGS; ++i)
+    for(i = REQ_ARG_OFFSET; i != MAX_ARGS; ++i)
     {
         if(! optflag[i]){
             fprintf(stderr, "%s: argument (or parameter to it) required: %s\n", NAME, opt[i]);
@@ -296,7 +305,7 @@ int main(int argc, char **argv)
     ip_hdr.ihl = IP_HDRLEN;
     ip_hdr.version = IP_VER;
     ip_hdr.tos = IP_TYPEOFSERV;
-    ip_hdr.tot_len = IP_TOTLEN;
+    ip_hdr.tot_len = sizeof(struct iphdr) + sizeof(struct tcphdr) + datalen;
     ip_hdr.frag_off = IP_FRAGOFF;
     ip_hdr.ttl = IP_TIMETOLIVE;
     ip_hdr.protocol = IP_PROTO;
@@ -315,7 +324,7 @@ int main(int argc, char **argv)
     tcp_hdr.rst = strtol(&(tcpflags[5][1]), 0, 10);
     tcp_hdr.syn = strtol(&(tcpflags[6][1]), 0, 10);
     tcp_hdr.urg = strtol(&(tcpflags[7][1]), 0, 10);
-    tcp_hdr.check = TCP_CHECKSUM;
+    tcp_hdr.check = TCP_CHCKSUM;
     tcp_hdr.window = htons(TCP_WINDOW);
     tcp_hdr.urg_ptr = htons(TCP_URGPTR);
     tcp_hdr.source = htons(rand() % 65535);
@@ -330,7 +339,7 @@ int main(int argc, char **argv)
     ip_hdr.ip_hl = IP_HDRLEN;
     ip_hdr.ip_v = IP_VER;
     ip_hdr.ip_tos = IP_TYPEOFSERV;
-    ip_hdr.ip_len = IP_TOTLEN;
+    ip_hdr.ip_len = sizeof(struct ip) + sizeof(struct tcphdr) + datalen;
     ip_hdr.ip_off = IP_FRAGOFF;
     ip_hdr.ip_ttl = IP_TIMETOLIVE;
     ip_hdr.ip_p = IP_PROTO;
@@ -350,7 +359,7 @@ int main(int argc, char **argv)
     if(strtol(&(tcpflags[6][1]), 0, 10)) tcp_flags |= TH_SYN;
     if(strtol(&(tcpflags[7][1]), 0, 10)) tcp_flags |= TH_URG;
     tcp_hdr.th_flags = tcp_flags;
-    tcp_hdr.th_sum = TCP_CHECKSUM;
+    tcp_hdr.th_sum = TCP_CHCKSUM;
     tcp_hdr.th_win = htons(TCP_WINDOW);
     tcp_hdr.th_urp = htons(TCP_URGPTR);
     tcp_hdr.th_sport = htons(rand() % 65535);
@@ -381,22 +390,31 @@ int main(int argc, char **argv)
     printf("%s: socket options set\n", NAME);
 	
     /* build packet */
-    pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr) + sizeof(data);
-    if((pkt = (unsigned char *) malloc(pktsz)) == NULL){
+    if(data != NULL){
+        if(datalen > 0)
+            pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr) + datalen + 1;
+        else
+            pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr);
+    }else{
+        pktsz = sizeof(ip_hdr) + sizeof(tcp_hdr);
+    }
+    
+    if((pkt = (char *) malloc(pktsz)) == NULL){
         fprintf(stderr, "%s: pkt: malloc: %s\n", NAME, strerror(errno));
         exit(1);
     }
-    memset(pkt, 0, pktsz);
+    
+    memset(pkt, '\0', pktsz);
     memcpy(pkt, &ip_hdr, sizeof(ip_hdr));
     memcpy(pkt + sizeof(ip_hdr), &tcp_hdr, sizeof(tcp_hdr));
-    memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, sizeof(data));
-
+    if(data != NULL) memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, datalen);
+        
 #ifdef LINUX
     ip_hdr.check = ip_csum((unsigned short *) pkt, ip_hdr.tot_len);
-    printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.check);
+    printf("%s: packet built (IP checksum: %#X)\n", NAME, ip_hdr.check);
 #elif FREEBSD | OSX
     ip_hdr.ip_sum = ip_csum((unsigned short *) pkt, ip_hdr.ip_len);
-    printf("%s: packet built (IP checksum: %X)\n", NAME, ip_hdr.ip_sum);
+    printf("%s: packet built (IP checksum: %#X)\n", NAME, ip_hdr.ip_sum);
 #else /* should never fire if macro definitions are in sync */
     fprintf(stderr, "%s: target OS macro integrity issue - aborting IP checksum.\n", NAME);
     exit(1);
@@ -411,6 +429,7 @@ int main(int argc, char **argv)
     printf("%s: packet sent from %s to %s:%d\n", NAME, src, dst, dport);
 
     /* clean up */
+    if(data != NULL) free(data);
     free(src);
     free(dst);
     freeaddrinfo(result);
@@ -427,11 +446,11 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
         nbytes -= 2;
     }
     
-    /*  add left-over byte, if any */
+    /* add left-over byte, if any */
     if(nbytes > 0)
         sum += *ptr;
     
-    /*  fold 32-bit sum to 16 bits */
+    /* fold 32-bit sum to 16 bits */
     while (sum >> 16)
         sum = (sum & 0xffff) + (sum >> 16);
     
@@ -439,7 +458,7 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
 }
 void usage(void)
 {           
-    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
+    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s", 
         NAME, "[options] <arguments>", NAME, "<arguments> [options]\n",
         "\n[Options]\n",
         "-f <tcpflag...>\t# Optional TCP flag(s) to enable. If using\n",
@@ -452,8 +471,9 @@ void usage(void)
         "\t\t# P or p (enables the PSH bit)\n",
         "\t\t# R or r (enables the RST bit)\n",
         "\t\t# S or s (enables the SYN bit)\n",
-        "\t\t# U or u (enables the URG bit)\n\n",
-        "[Arguments]\n",
+        "\t\t# U or u (enables the URG bit)\n",
+        "-m <message>\t# Optional message to send (maximum of ", MAX_DATALEN, " bytes)\n",
+        "\n[Arguments]\n",
         "-s <src>\t# Source IPv4 address or hostname to spoof\n", 
         "-d <dst>\t# Destination IPv4 address or hostname of victim\n",
         "-p <dport>\t# Destination port to send spoofed TCP packet\n\n");
