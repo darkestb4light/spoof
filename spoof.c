@@ -408,6 +408,8 @@ int main(int argc, char **argv)
     memcpy(pkt, &ip_hdr, sizeof(ip_hdr));
     memcpy(pkt + sizeof(ip_hdr), &tcp_hdr, sizeof(tcp_hdr));
     if(data != NULL) memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, datalen);
+    
+    printf("%s: packet built\n", NAME);
         
 #ifdef LINUX
     ip_hdr.check = ip_csum((unsigned short *) pkt, ip_hdr.tot_len);
