@@ -48,7 +48,7 @@
                      # R or r (enables the RST bit)
                      # S or s (enables the SYN bit)
                      # U or u (enables the URG bit)
-        -m <message> # Optional message to send (maximum of 128 bytes)
+        -m <message> # Optional message to send in the packet
         
         [Arguments]
         -s <src>     # Source IPv4 address or hostname to spoof
@@ -458,7 +458,7 @@ unsigned short ip_csum(unsigned short *ptr, int nbytes)
 }
 void usage(void)
 {           
-    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s", 
+    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
         NAME, "[options] <arguments>", NAME, "<arguments> [options]\n",
         "\n[Options]\n",
         "-f <tcpflag...>\t# Optional TCP flag(s) to enable. If using\n",
@@ -472,7 +472,7 @@ void usage(void)
         "\t\t# R or r (enables the RST bit)\n",
         "\t\t# S or s (enables the SYN bit)\n",
         "\t\t# U or u (enables the URG bit)\n",
-        "-m <message>\t# Optional message to send (maximum of ", MAX_DATALEN, " bytes)\n",
+        "-m <message>\t# Optional message to send in the packet\n",
         "\n[Arguments]\n",
         "-s <src>\t# Source IPv4 address or hostname to spoof\n", 
         "-d <dst>\t# Destination IPv4 address or hostname of victim\n",
