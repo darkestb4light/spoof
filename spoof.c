@@ -70,6 +70,14 @@
         The above will set the FIN/PSH/URG bits (AKA X-mas tree attack), spoof 
         the source address "foobar.com", and send a packet to the destination 
         "my.victim.com" over TCP port of 1337.
+
+        Execute (example 3):
+
+        $ sudo ./spoof -f PA -d my.victim.com -p 1337 -s l84dinner.com -m "Sp00fing 4 lulz"
+
+        The above will set the PSH/ACK bits, spoof the source address "l84dinner.com", 
+        send a packet containing a data payload of "Sp00fing 4 lulz" to the destination 
+        "my.victim.com" over TCP port of 1337.
 */
 
 #include <ctype.h>
