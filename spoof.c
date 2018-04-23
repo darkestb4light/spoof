@@ -100,27 +100,27 @@
 
 #define NAME	        "spoof"
 #define MAX_ARGS        5
-#define REQ_ARG_OFFSET  2   /* index where required args start */
+#define REQ_ARG_OFFSET  2       /* index where required args start */
 #define MAX_FLAGS       8
 #define HOST_SZ         255
 #define MAX_DATALEN     128
 
 /* Flags for IP header */
-#define IP_HDRLEN       5   /* header length */
-#define IP_VER          4   /* version */
-#define IP_TYPEOFSERV   0   /* type of service */
-#define IP_FRAGOFF      0   /* fragment offset */
-#define IP_TIMETOLIVE   64  /* time to live */
-#define IP_PROTO        6   /* protocol */
-#define IP_CHKSUM       0   /* IP checksum initial value */
+#define IP_HDRLEN       5       /* header length */
+#define IP_VER          4       /* version */
+#define IP_TYPEOFSERV   0       /* type of service */
+#define IP_FRAGOFF      0       /* fragment offset */
+#define IP_TIMETOLIVE   64      /* time to live */
+#define IP_PROTO        6       /* protocol */
+#define IP_CHKSUM       0       /* IP checksum initial value */
 
 /* Flags for TCP header */
-#define TCP_DATAOFF     5   /* data offset */
-#define TCP_WINDOW      0   /* window size */
-#define TCP_URGPTR      0   /* urgent pointer */
-#define TCP_CHCKSUM     0   /* TCP checksum initial value */
+#define TCP_DATAOFF     5       /* data offset */
+#define TCP_WINDOW      0       /* window size */
+#define TCP_URGPTR      0       /* urgent pointer */
+#define TCP_CHCKSUM     0       /* TCP checksum initial value */
 
-struct tcp_ph               /* pseudo header per rfc793 */
+struct tcp_ph                   /* pseudo header per rfc793 */
 {
     u_int32_t   saddr;
     u_int32_t   daddr;
@@ -129,14 +129,14 @@ struct tcp_ph               /* pseudo header per rfc793 */
     u_int16_t   length;
 };
 
-unsigned short ip_csum(unsigned short *, int); /* derived from rfc 1071 */
+unsigned short csum(unsigned short *, int); /* derived from rfc 1071 / rfc793 */
 void usage(void);
 
 int main(int argc, char **argv)
 {
     int                 i, j, optflag[MAX_ARGS] = {0}, res, dport,
-                        sd, pktsz, datalen = 0, optval = 1;
-    char                *pkt = NULL, *flag, *src, *dst, *data = NULL,
+                        sd, pktsz, datalen = 0, optval = 1, ppktsz;
+    char                *pkt = NULL, *flag, *src, *dst, *data = NULL, *ppkt = NULL,
                         *opt[MAX_ARGS] = {"-f", "-m", "-s", "-d", "-p"},
                         tcpflags[MAX_FLAGS][2] = {{'a', '0',},
                                                   {'c', '0',},
@@ -149,6 +149,7 @@ int main(int argc, char **argv)
     struct addrinfo     hints, *result;
     struct sockaddr_in  sa_in, *saddr, *daddr;
     struct tcphdr       tcp_hdr;
+    struct tcp_ph       ph;
 	
     /* process arguments */
     for(i = 1; i != argc; ++i)
@@ -370,24 +371,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "%s: target OS macro integrity issue - aborting setting headers.\n", NAME);
     exit(1);
 #endif
-    
-    printf("%s: headers set for TCP/IP\n", NAME);
-    
-    /* create socket */
-    if((sd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1){
-        fprintf(stderr, "%s: socket: %s\n", NAME, strerror(errno));
-        exit(1);
-    }
-    	
-    printf("%s: raw socket descriptor created\n", NAME);
-	
-    /* set socket options */
-    if(setsockopt(sd, IPPROTO_IP, IP_HDRINCL, &optval, sizeof(optval)) < 0){
-        fprintf(stderr, "%s: setsockopt: %s\n", NAME, strerror(errno));
-        exit(1);
-    }
-	
-    printf("%s: socket options set\n", NAME);
 	
     /* build packet */
     if(data != NULL){
@@ -409,19 +392,70 @@ int main(int argc, char **argv)
     memcpy(pkt + sizeof(ip_hdr), &tcp_hdr, sizeof(tcp_hdr));
     if(data != NULL) memcpy(pkt + sizeof(ip_hdr) + sizeof(tcp_hdr), data, datalen);
     
-    printf("%s: packet built\n", NAME);
-        
 #ifdef LINUX
-    ip_hdr.check = ip_csum((unsigned short *) pkt, ip_hdr.tot_len);
-    printf("%s: packet built (IP checksum: %#X)\n", NAME, ip_hdr.check);
+    ip_hdr.check = csum((unsigned short *) pkt, ip_hdr.tot_len);
+    printf("%s: IP checksum: %#X\n", NAME, ip_hdr.check);
 #elif FREEBSD | OSX
-    ip_hdr.ip_sum = ip_csum((unsigned short *) pkt, ip_hdr.ip_len);
-    printf("%s: packet built (IP checksum: %#X)\n", NAME, ip_hdr.ip_sum);
+    ip_hdr.ip_sum = csum((unsigned short *) pkt, ip_hdr.ip_len);
+    printf("%s: IP checksum: %#X\n", NAME, ip_hdr.ip_sum);
 #else /* should never fire if macro definitions are in sync */
     fprintf(stderr, "%s: target OS macro integrity issue - aborting IP checksum.\n", NAME);
     exit(1);
 #endif
+    
+    ph.saddr = inet_addr(src);
+    ph.daddr = inet_addr(dst);
+    ph.zero = 0;
+    ph.proto = IP_PROTO;
+    
+    if(data != NULL){
+        ph.length = htons(sizeof(struct tcphdr) + strlen(data));
+        ppktsz = sizeof(struct tcp_ph) + sizeof(struct tcphdr) + strlen(data);
+    }else{
+        ph.length = htons(sizeof(struct tcphdr));
+        ppktsz = sizeof(struct tcp_ph) + sizeof(struct tcphdr);
+    }
+
+    if((ppkt = (char *) malloc(ppktsz)) == NULL){
+        fprintf(stderr, "%s: pseudo pkt: malloc: %s\n", NAME, strerror(errno));
+        exit(1);
+    }
+    
+    memcpy(ppkt, &ph, sizeof(struct tcp_ph));
+    if(data != NULL) 
+        memcpy(ppkt + sizeof(struct tcp_ph), &tcp_hdr, sizeof(struct tcphdr) + strlen(data));
+    else
+        memcpy(ppkt + sizeof(struct tcp_ph), &tcp_hdr, sizeof(struct tcphdr));
+
+#ifdef LINUX
+    tcp_hdr.check = csum((unsigned short *) ppkt, ppktsz);
+    printf("%s: TCP checksum: %#X\n", NAME, tcp_hdr.check);
+#elif FREEBSD | OSX
+    tcp_hdr.th_sum = csum((unsigned short *) ppkt, ppktsz);
+    printf("%s: TCP checksum: %#X\n", NAME, tcp_hdr.th_sum);
+#else /* should never fire if macro definitions are in sync */
+    fprintf(stderr, "%s: target OS macro integrity issue - aborting TCP checksum.\n", NAME);
+    exit(1);
+#endif
+
+    printf("%s: packet built\n", NAME);
+    
+    /* create socket */
+    if((sd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1){
+        fprintf(stderr, "%s: socket: %s\n", NAME, strerror(errno));
+        exit(1);
+    }
+    	
+    printf("%s: raw socket descriptor created\n", NAME);
 	
+    /* set socket options */
+    if(setsockopt(sd, IPPROTO_IP, IP_HDRINCL, &optval, sizeof(optval)) < 0){
+        fprintf(stderr, "%s: setsockopt: %s\n", NAME, strerror(errno));
+        exit(1);
+    }
+	
+    printf("%s: socket options set\n", NAME);
+    
     /* send packet */
     if(sendto(sd, pkt, pktsz, 0, (struct sockaddr *)&sa_in, sizeof(sa_in)) < 0){
         fprintf(stderr, "%s: sendto: %s\n", NAME, strerror(errno));
@@ -432,6 +466,7 @@ int main(int argc, char **argv)
 
     /* clean up */
     if(data != NULL) free(data);
+    if(ppkt != NULL) free(ppkt);
     free(src);
     free(dst);
     freeaddrinfo(result);
@@ -439,7 +474,7 @@ int main(int argc, char **argv)
 
     exit(0);
 }
-unsigned short ip_csum(unsigned short *ptr, int nbytes)
+unsigned short csum(unsigned short *ptr, int nbytes)
 {
     register long sum = 0;
     
