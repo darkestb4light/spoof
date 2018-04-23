@@ -112,13 +112,11 @@
 #define IP_FRAGOFF      0       /* fragment offset */
 #define IP_TIMETOLIVE   64      /* time to live */
 #define IP_PROTO        6       /* protocol */
-#define IP_CHKSUM       0       /* IP checksum initial value */
 
 /* Flags for TCP header */
 #define TCP_DATAOFF     5       /* data offset */
 #define TCP_WINDOW      0       /* window size */
 #define TCP_URGPTR      0       /* urgent pointer */
-#define TCP_CHCKSUM     0       /* TCP checksum initial value */
 
 struct tcp_ph                   /* pseudo header per rfc793 */
 {
@@ -310,7 +308,7 @@ int main(int argc, char **argv)
     ip_hdr.frag_off = IP_FRAGOFF;
     ip_hdr.ttl = IP_TIMETOLIVE;
     ip_hdr.protocol = IP_PROTO;
-    ip_hdr.check = IP_CHKSUM;
+    ip_hdr.check = 0;
     ip_hdr.id = htons(rand() % 65535);
     ip_hdr.saddr = inet_addr(src);
     ip_hdr.daddr = inet_addr(dst);  
@@ -325,7 +323,7 @@ int main(int argc, char **argv)
     tcp_hdr.rst = strtol(&(tcpflags[5][1]), 0, 10);
     tcp_hdr.syn = strtol(&(tcpflags[6][1]), 0, 10);
     tcp_hdr.urg = strtol(&(tcpflags[7][1]), 0, 10);
-    tcp_hdr.check = TCP_CHCKSUM;
+    tcp_hdr.check = 0;
     tcp_hdr.window = htons(TCP_WINDOW);
     tcp_hdr.urg_ptr = htons(TCP_URGPTR);
     tcp_hdr.source = htons(rand() % 65535);
@@ -344,7 +342,7 @@ int main(int argc, char **argv)
     ip_hdr.ip_off = IP_FRAGOFF;
     ip_hdr.ip_ttl = IP_TIMETOLIVE;
     ip_hdr.ip_p = IP_PROTO;
-    ip_hdr.ip_sum = IP_CHKSUM;
+    ip_hdr.ip_sum = 0;
     ip_hdr.ip_id = htons(rand() % 65535);
     ip_hdr.ip_src.s_addr = inet_addr(src);
     ip_hdr.ip_dst.s_addr = inet_addr(dst);
@@ -360,7 +358,7 @@ int main(int argc, char **argv)
     if(strtol(&(tcpflags[6][1]), 0, 10)) tcp_flags |= TH_SYN;
     if(strtol(&(tcpflags[7][1]), 0, 10)) tcp_flags |= TH_URG;
     tcp_hdr.th_flags = tcp_flags;
-    tcp_hdr.th_sum = TCP_CHCKSUM;
+    tcp_hdr.th_sum = 0;
     tcp_hdr.th_win = htons(TCP_WINDOW);
     tcp_hdr.th_urp = htons(TCP_URGPTR);
     tcp_hdr.th_sport = htons(rand() % 65535);
