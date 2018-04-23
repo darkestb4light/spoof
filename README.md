@@ -61,6 +61,7 @@ spoof <arguments> [options]
              # R or r (enables the RST bit)
              # S or s (enables the SYN bit)
              # U or u (enables the URG bit)
+-m <message> # Optional message to send in the packet
 
 [Arguments]
 -s <src>    # Source IPv4 address or hostname to spoof
@@ -85,4 +86,12 @@ $ sudo ./spoof -f FPU -d my.victim.com -p 1337 -s foobar.com
 
 The above will set the FIN/PSH/URG bits (AKA X-mas tree attack), spoof 
 the source address "foobar.com", and send a packet to the destination 
+"my.victim.com" over TCP port of 1337.
+
+Example 3:
+
+$ sudo ./spoof -f PA -d my.victim.com -p 1337 -s l84dinner.com -m "Sp00fing 4 lulz"
+
+The above will set the PSH/ACK bits, spoof the source address "l84dinner.com", 
+send a packet containing a data payload of "Sp00fing 4 lulz" to the destination 
 "my.victim.com" over TCP port of 1337.
