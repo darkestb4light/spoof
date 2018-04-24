@@ -27,11 +27,15 @@
         On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) 
         to fail with: "Can't assign requested address". Use another source 
         address or hostname.
+		
+		If compiled via Cygwin on Windows:
+		- Ensure you launch your terminal as "Administrator"
+		- Header tcp.h (v8.1) does not support CWR or ECE :(
     Compile: 
         $ gcc -D <TARGET-OS> -o spoof spoof.c
 
-        Where <TARGET-OS> is one of: LINUX, FREEBSD, or OSX (depending on the 
-        platform you are compiling on).
+        Where <TARGET-OS> is one of: LINUX, FREEBSD, OSX, or CYGWIN (depending 
+		on the platform you are compiling on).
     Usage: 
         spoof [options] <arguments>
         spoof <arguments> [options]
@@ -96,7 +100,7 @@
 #ifdef LINUX
     #include <linux/ip.h>
     #include <linux/tcp.h>
-#elif FREEBSD | OSX
+#elif defined(FREEBSD) || defined(OSX) || defined(CYGWIN)
     #include <netinet/in.h>
     #include <netinet/ip.h>
     #include <netinet/tcp.h>
@@ -338,7 +342,7 @@ int main(int argc, char **argv)
     tcp_hdr.dest = htons(dport);
     tcp_hdr.seq = htonl(rand() % UINT_MAX);
     tcp_hdr.ack_seq = htonl(0);
-#elif FREEBSD | OSX
+#elif defined(FREEBSD) || defined(OSX) || defined(CYGWIN)
     struct ip ip_hdr;
     unsigned int tcp_flags = 0;
 	
@@ -358,8 +362,10 @@ int main(int argc, char **argv)
     /* TCP header */
     tcp_hdr.th_off = TCP_DATAOFF;
     if(strtol(&(tcpflags[0][1]), 0, 10)) tcp_flags |= TH_ACK;
+#ifndef CYGWIN /* CWR and ECE bits not supported in tcp.h v8.1 */
     if(strtol(&(tcpflags[1][1]), 0, 10)) tcp_flags |= TH_CWR;
     if(strtol(&(tcpflags[2][1]), 0, 10)) tcp_flags |= TH_ECE;
+#endif
     if(strtol(&(tcpflags[3][1]), 0, 10)) tcp_flags |= TH_FIN;
     if(strtol(&(tcpflags[4][1]), 0, 10)) tcp_flags |= TH_PUSH;
     if(strtol(&(tcpflags[5][1]), 0, 10)) tcp_flags |= TH_RST;
@@ -401,7 +407,7 @@ int main(int argc, char **argv)
 #ifdef LINUX
     ip_hdr.check = csum((unsigned short *) pkt, ip_hdr.tot_len);
     printf("%s: IP checksum: %#X\n", NAME, ip_hdr.check);
-#elif FREEBSD | OSX
+#elif defined(FREEBSD) || defined(OSX) || defined(CYGWIN)
     ip_hdr.ip_sum = csum((unsigned short *) pkt, ip_hdr.ip_len);
     printf("%s: IP checksum: %#X\n", NAME, ip_hdr.ip_sum);
 #else /* should never fire if macro definitions are in sync */
@@ -436,7 +442,7 @@ int main(int argc, char **argv)
 #ifdef LINUX
     tcp_hdr.check = csum((unsigned short *) ppkt, ppktsz);
     printf("%s: TCP checksum: %#X\n", NAME, tcp_hdr.check);
-#elif FREEBSD | OSX
+#elif defined(FREEBSD) || defined(OSX) || defined(CYGWIN)
     tcp_hdr.th_sum = csum((unsigned short *) ppkt, ppktsz);
     printf("%s: TCP checksum: %#X\n", NAME, tcp_hdr.th_sum);
 #else /* should never fire if macro definitions are in sync */
@@ -500,16 +506,22 @@ unsigned short csum(unsigned short *ptr, int nbytes)
     return (~sum);
 }
 void usage(void)
-{           
-    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
+{
+#ifdef CYGWIN
+	fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+#else
+    fprintf(stderr, "Usage:\n\t%s %s\n\t%s %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+#endif
         NAME, "[options] <arguments>", NAME, "<arguments> [options]\n",
         "\n[Options]\n",
         "-f <tcpflag...>\t# Optional TCP flag(s) to enable. If using\n",
         "\t\t# more than one flag, each should be appended\n",
         "\t\t# together (e.g. ASRF). The available flags are:\n",
         "\t\t# A or a (enables the ACK bit)\n",
+#ifndef CYGWIN	/* CWR and ECE bits not supported in tcp.h v8.1 */
         "\t\t# C or c (enables the CWR bit)\n",
         "\t\t# E or e (enables the ECE bit)\n",
+#endif
         "\t\t# F or f (enables the FIN bit)\n",
         "\t\t# P or p (enables the PSH bit)\n",
         "\t\t# R or r (enables the RST bit)\n",
