@@ -38,8 +38,8 @@ fail with: "Can't assign requested address". Use "localhost" or another
 IPv4 address or hostname.
 
 If compiled via Cygwin on Windows:
-		- Ensure you launch your terminal as "Administrator"
-		- Header tcp.h (v8.1) does not support CWR or ECE :(
+- Ensure you launch your terminal as "Administrator"
+- Header tcp.h (v8.1) does not support CWR or ECE :(
     
 ## Compile:
 
