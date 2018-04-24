@@ -37,11 +37,16 @@ On BSD systems (OSX and FREEBSD), spoofing 127.0.0.1 causes sendto(2) to
 fail with: "Can't assign requested address". Use "localhost" or another 
 IPv4 address or hostname.
 
+If compiled via Cygwin on Windows:
+		- Ensure you launch your terminal as "Administrator"
+		- Header tcp.h (v8.1) does not support CWR or ECE :(
+    
 ## Compile:
 
 gcc -D \<TARGET-OS\> -o spoof spoof.c
 
-Where \<TARGET-OS\> is one of: LINUX, FREEBSD, or OSX (depending on the platform you are compiling on).
+Where \<TARGET-OS\> is one of: LINUX, FREEBSD, OSX, or CYGWIN (depending on the 
+platform you are compiling on).
 
 ## Usage:
 
