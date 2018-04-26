@@ -106,7 +106,7 @@
     #include <netinet/tcp.h>
 #else
     #error Target OS macro not specified or unsupported.
-    #error Use supported macro: -D LINUX, -D FREEBSD, -D OSX, or CYGWIN
+    #error Use supported macro: -D LINUX, -D FREEBSD, -D OSX, or -D CYGWIN
     #error Aborting compilation.
 #endif
 
